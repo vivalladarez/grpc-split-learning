@@ -109,7 +109,7 @@ python -m venv .venv
 Instale as dependências:
 
 ```bash
-# gRPC + Protobuf (evita conflitos com TF)
+# gRPC + Protobuf
 pip install "protobuf==4.25.3" "grpcio==1.62.2" "grpcio-tools==1.62.2"
 
 # Deep learning
