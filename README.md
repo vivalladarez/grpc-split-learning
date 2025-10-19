@@ -20,12 +20,15 @@ Neste formato **U-Shaped**, cada cliente:
 
 ### 2. Estrutura principal
     grpc-split-learning/
-    ├── splitlearning.proto        # Definição dos serviços e mensagens gRPC
-    ├── server.py                  # Servidor (modelo M2 + logging centralizado)
-    ├── client.py                  # Cliente (modelos M1/M3 + envio de métricas)
-    ├── driver_ray.py              # Orquestrador Ray (múltiplos clientes)
-    ├── metrics_all.csv            # Métricas consolidadas (gerado em runtime)
-    └── README.md
+    ├── splitlearning.proto         # Definição dos serviços e mensagens gRPC
+    ├── server.py                   # Servidor (modelo M2, camadas intermediárias e coordenação)
+    ├── client.py                   # Cliente (modelos M1 e M3, cálculo local de loss e gradientes)
+    ├── driver_ray.py               # Orquestrador com Ray para múltiplos clientes paralelos
+    ├── metrics_all.csv             # Métricas globais 
+    ├── metrics_client_analysis.py  # Script de análise e visualização das métricas
+    ├── plots_results/              # Pasta de saída com gráficos e visualizações geradas automaticamente
+    └── README.md                   # Documentação do projeto
+
 ### 3. Arquitetura 
 
                       ─────────────────────────────────────────────────────────────
@@ -135,9 +138,22 @@ python server.py
 
 - Executar os Clientes com Ray
 ```bash
-python driver_ray.py --num_clients 4 --epochs 2 --batch_size 64
+python driver_ray.py --num_clients 3 --epochs 5 --batch_size 64
 ```
+**obs:** aqui é possivel editar o numero de clients, epochs e batch_size
 
 ### 5. Resultados
 
-Após a execução do treinamento, o servidor consolida as métricas de todos os clientes no arquivo *metrics_all.csv*
+Após a execução do treinamento, o servidor consolida as métricas de todos os clientes no arquivo *metrics_all.csv*. Por fim, oscript metrics_client_analysis.py gera automaticamente os gráficos agregados e salva o resultado em `plots_results/split_learning_metrics.png`
+
+![Resultados](https://github.com/vivalladarez/grpc-split-learning/blob/731fc1101b0a0a4f26b142c4db15e4418ff67aa2/plots_results/split_learning_metrics.png)
+
+Os gráficos acima representam a evolução de Loss, Acurácia, Latência e Bytes Transmitidos ao longo de 4 épocas de treinamento:
+
+- Loss: decresce de forma consistente em todos os clientes, indicando convergência estável mesmo com o modelo dividido entre cliente (M1/M3) e servidor (M2).
+
+- Acurácia: apresenta crescimento contínuo (~0.25 → ~0.55), evidenciando aprendizado global efetivo, mesmo sem troca direta de dados brutos.
+
+- Latência: aumenta levemente após a 2ª época, comportamento esperado devido ao maior sincronismo entre forward e backward federados conforme os pesos se ajustam.
+
+- Transmissão cumulativa (Tx): cresce de maneira quase linear e equilibrada entre os clientes, refletindo a estabilidade da carga de rede do corte M1→M2.
