@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package splitlearning;
+
+message Tensor {
+  repeated float data  = 1;
+  repeated int32 shape = 2;
+}
+
+message ForwardRequest { int32 client_id = 1; Tensor a1 = 2; }
+message ForwardResponse { Tensor z2 = 1; }
+
+message BackwardRequest { int32 client_id = 1; Tensor dz2 = 2; }
+message BackwardResponse { Tensor da1 = 1; }
+
+/* ------- MÉTRICAS CENTRALIZADAS ------- */
+message MetricsLog {
+  int32  client_id  = 1;
+  int32  epoch      = 2;
+  int32  step       = 3;
+  float  loss       = 4;
+  float  acc        = 5;
+  float  latency_s  = 6;
+  float  mb_tx      = 7;
+  float  mb_rx      = 8;
+  double timestamp  = 9; // time.time() do cliente
+}
+message Ack {}  // resposta vazia
+
+service SplitLearning {
+  rpc Forward  (ForwardRequest)  returns (ForwardResponse);
+  rpc Backward (BackwardRequest) returns (BackwardResponse);
+  rpc LogMetrics (MetricsLog)    returns (Ack);   // <--- NOVO
+}
